@@ -1,19 +1,18 @@
 module AttrObserver
 
   def add_observer name, &handler
-
-    observers = (@_attr_observers ||= {})
+    unless observers = @_attr_observers
+      observers = @_attr_observers = {}
+      @_attr_old_values = {}
+    end
 
     unless handlers = observers[name]
       handlers = observers[name] = []
-      old_val = __send__ name if respond_to? name
+      @_attr_old_values[name] = __send__ name if respond_to? name
 
       if respond_to? "#{name}="
         define_singleton_method "#{name}=" do |val|
-          result = super val
-          handlers.each { |h| h.call val, old_val }
-          old_val = val
-          result
+          super(val).tap { attr_did_change name }
         end
       end
     end
@@ -29,5 +28,12 @@ module AttrObserver
     if handlers = @_attr_observers[name]
       handlers.delete handler
     end
+  end
+
+  def attr_did_change name
+    old = @_attr_old_values[name]
+    new = __send__ name if respond_to? name
+    @_attr_observers[name].each { |h| h.call new, old }
+    @_attr_old_values[name] = new
   end
 end
