@@ -3,7 +3,11 @@ require 'spec_helper'
 class ObserverTest
   include AttrObserver
 
-  attr_accessor :foo, :bar
+  attr_accessor :foo, :bar, :baz
+
+  def baz=(b)
+    @baz = b + 10
+  end
 end
 
 describe AttrObserver do
@@ -78,6 +82,12 @@ describe AttrObserver do
     it "returns the passed in block" do
       p = proc {}
       obj.add_observer(:foo, &p).should eq(p)
+    end
+
+    it "calls original setter method before triggering observers" do
+      obj.add_observer(:baz) { obj.baz.should eq(20) }
+
+      obj.baz = 10
     end
   end
 
